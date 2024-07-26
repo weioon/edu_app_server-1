@@ -13,7 +13,7 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization");
 // Database connection details
 $servername = "localhost";
 $username = "root";
-$password = "";
+$password = "1234";
 $dbname = "mb_edu_app";
 
 // Create connection
