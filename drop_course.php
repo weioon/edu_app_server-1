@@ -19,18 +19,18 @@ if ($conn->connect_error) {
 
 // Get the input data
 $input = json_decode(file_get_contents('php://input'), true);
-$sessionToken = $input['sessionToken'] ?? '';
+$userId = $input['sessionToken'] ?? '';
 $courseName = $input['courseName'] ?? '';
 
 // Log the received data
-error_log("Received sessionToken: " . var_export($sessionToken, true), 3, 'error.log');
+error_log("Received userId: " . var_export($userId, true), 3, 'error.log');
 error_log("Received courseName: " . var_export($courseName, true), 3, 'error.log');
 
 // Validate input
-if (empty($sessionToken) || empty($courseName)) {
+if (empty($userId) || empty($courseName)) {
     $errorMessage = sprintf(
-        "Invalid input: sessionToken - %s, courseName - %s",
-        var_export($sessionToken, true),
+        "Invalid input: userId - %s, courseName - %s",
+        var_export($userId, true),
         var_export($courseName, true)
     );
     error_log($errorMessage, 3, 'error.log');
@@ -38,12 +38,21 @@ if (empty($sessionToken) || empty($courseName)) {
     exit;
 }
 
-// Delete the course from the user's schedule using sessionToken as id
+// Delete the course from the user's schedule
 $stmt = $conn->prepare("DELETE FROM user_courses WHERE id = ? AND name = ?");
-$stmt->bind_param("ss", $sessionToken, $courseName);
+$stmt->bind_param("is", $userId, $courseName);
+
+error_log("Executing query: DELETE FROM user_courses WHERE id = '$userId' AND name = '$courseName'", 3, 'error.log');
 
 if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Course dropped successfully']);
+    $affectedRows = $stmt->affected_rows;
+    error_log("Query executed. Affected rows: " . $affectedRows, 3, 'error.log');
+    
+    if ($affectedRows > 0) {
+        echo json_encode(['success' => true, 'message' => 'Course dropped successfully']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'No course found to drop']);
+    }
 } else {
     $error_message = $stmt->error;
     error_log("Failed to drop course: " . $error_message, 3, 'error.log');
