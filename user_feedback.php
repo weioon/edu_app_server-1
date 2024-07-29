@@ -5,7 +5,6 @@ error_reporting(E_ALL);
 
 // Allow cross-origin requests (adjust in production)
 header("Content-Type: application/json; charset=UTF-8");
-
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -28,15 +27,19 @@ if ($conn->connect_error) {
 }
 
 // Check if required fields are provided
-if (!isset($_POST['email']) || !isset($_POST['feedback'])) {
+if (!isset($_POST['sessionToken']) || !isset($_POST['feedback'])) {
     die(json_encode([
         "status" => "error",
-        "message" => "Email and feedback are required"
+        "message" => "Session token and feedback are required"
     ]));
 }
 
-$email = $conn->real_escape_string($_POST['email']);
+$sessionToken = $conn->real_escape_string($_POST['sessionToken']);
 $feedback = $conn->real_escape_string($_POST['feedback']);
+
+// Debugging: Log received sessionToken and feedback
+error_log("Received sessionToken: " . $sessionToken);
+error_log("Received feedback: " . $feedback);
 
 // Handle file upload
 $photo_path = null;
@@ -55,10 +58,17 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] == 0) {
     }
 }
 
+// Assuming sessionToken is the user ID
+$user_id = $sessionToken;
+
+// Debugging: Log user ID and photo path
+error_log("Using user_id: " . $user_id);
+error_log("Photo path: " . $photo_path);
+
 // Prepare SQL statement
-$sql = "INSERT INTO user_feedback (email, feedback, photo_path) VALUES (?, ?, ?)";
+$sql = "INSERT INTO user_feedback (user_id, feedback, photo_path) VALUES (?, ?, ?)";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("sss", $email, $feedback, $photo_path);
+$stmt->bind_param("sss", $user_id, $feedback, $photo_path);
 
 // Execute the statement
 if ($stmt->execute()) {

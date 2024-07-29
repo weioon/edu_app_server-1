@@ -16,8 +16,20 @@ if ($conn->connect_error) {
     die(json_encode(['success' => false, 'message' => 'Connection failed: ' . $conn->connect_error]));
 }
 
-$sql = "SELECT ucid, id, name, schedule, created_at FROM user_courses";
-$result = $conn->query($sql);
+// Get the session token from the query parameter
+$session_token = isset($_GET['token']) ? $_GET['token'] : '';
+
+if (!$session_token) {
+    echo json_encode(['success' => false, 'message' => 'Session token is required']);
+    exit;
+}
+
+// Get the courses for this specific session token (used as ID)
+$sql = "SELECT ucid, id, name, schedule, created_at FROM user_courses WHERE id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $session_token);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
     $courses = [];
@@ -26,8 +38,9 @@ if ($result->num_rows > 0) {
     }
     echo json_encode(['success' => true, 'data' => $courses]);
 } else {
-    echo json_encode(['success' => false, 'message' => 'No courses found']);
+    echo json_encode(['success' => false, 'message' => 'No courses found for this user']);
 }
 
+$stmt->close();
 $conn->close();
 ?>
